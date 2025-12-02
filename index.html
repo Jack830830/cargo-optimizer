@@ -89,9 +89,6 @@ async function loadCSV() {
 }
 
 let items = [];
-loadCSV().then(data => {
-  items = data;
-});
     
 const target = 20000;
 
@@ -224,12 +221,17 @@ function recompute(){
 }
 
 // 初始化
-generateSlots();
-recompute();
+loadCSV().then(data => {
+      items = data;
+    
+    generateSlots();
+    recompute();
+});
 </script>
 </body>
 
 </html>
+
 
 
 
