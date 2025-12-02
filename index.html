@@ -87,7 +87,12 @@ async function loadCSV() {
     };
   });
 }
-const items = await loadCSV();
+
+let items = [];
+loadCSV().then(data => {
+  items = data;
+});
+    
 const target = 20000;
 
 function generateSlots(){
@@ -225,6 +230,7 @@ recompute();
 </body>
 
 </html>
+
 
 
 
