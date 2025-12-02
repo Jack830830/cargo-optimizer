@@ -18,8 +18,7 @@
 }
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display:flex; gap:20px; padding:20px; background:var(--main-background); }
 h2 { margin-top: 0; padding-top: 0; }
-.col-item { width:70%; }
-.col-result { width:30%; }
+.col { width:100%; }
 .card { background: var(--card-background); border-radius:8px; padding:16px; box-shadow:0 4px 10px var(--card-shadow); }
 .table-wrapper { overflow-x: auto; width: 100%; }
 table { width: 100%; border-collapse: collapse; margin-top: 12px; table-layout: auto; word-break: break-word; }
@@ -35,7 +34,7 @@ select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main
 </style>
 </head>
 <body>
-<div class="col-item">
+<div class="col">
   <div class="card">
     <h2>貨運今日高價物品</h2>
     <div class="table-wrapper">
@@ -49,7 +48,7 @@ select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main
   </div>
 </div>
 
-<div class="col-result">
+<div class="col">
   <div class="card">
     <h2>計算最優結果</h2>
     <div id="resLowest" class="result"><em>--</em></div>
@@ -367,4 +366,5 @@ recompute();
 </body>
 
 </html>
+
 
