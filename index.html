@@ -80,10 +80,10 @@ async function loadCSV() {
   return lines.slice(1).map(line => {
     const [name, weight, price, category] = line.split(',');
     return {
-      name,
+      name: name,
       weight: Number(weight),
       price: Number(price),
-      category
+      category: category
     };
   });
 }
@@ -230,6 +230,7 @@ recompute();
 </body>
 
 </html>
+
 
 
 
