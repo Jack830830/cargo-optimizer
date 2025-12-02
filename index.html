@@ -21,7 +21,8 @@ h2 { margin-top: 0; padding-top: 0; }
 .col-item { width:70%; }
 .col-result { width:30%; }
 .card { background: var(--card-background); border-radius:8px; padding:16px; box-shadow:0 4px 10px var(--card-shadow); }
-table { width:100%; border-collapse:collapse; margin-top:12px; }
+.table-wrapper { overflow-x: auto; width: 100%; }
+table { min-width:100%; border-collapse:collapse; margin-top:12px; table-layout: fixed; word-wrap: break-word; }
 th,td { border:1px solid var(--main-border); padding:8px; text-align:center; }
 th { background: var(--table-background); font-weight:600; }
 input[type=number]{ width:80px; padding:4px; border-radius:4px; border:1px solid var(--main-border); text-align:center; }
@@ -37,12 +38,14 @@ select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main
 <div class="col-item">
   <div class="card">
     <h2>貨運今日高價物品</h2>
-    <table>
-      <thead>
-        <tr><th>#</th><th>類別 / 物品名稱</th><th>裝載量</th><th>盧諾單價</th></tr>
-      </thead>
-      <tbody id="slots"></tbody>
-    </table>
+    <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>#</th><th>類別 / 物品名稱</th><th>裝載量</th><th>盧諾單價</th></tr>
+          </thead>
+          <tbody id="slots"></tbody>
+        </table>
+    </div>
   </div>
 </div>
 
@@ -362,4 +365,5 @@ generateSlots();
 recompute();
 </script>
 </body>
+
 </html>
