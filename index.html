@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>協會貨運計算機</title>
+<style>
+:root {
+    --main-background: #F0F2F5;
+    --main-border: #DDD;
+    --table-background: #E8E8F5;
+    --card-background: #FFF;
+    --card-shadow: #00000022;
+    
+    --main-description-text: #777;
+
+    --price-low: green;
+    --price-high: red;
+}
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display:flex; gap:20px; padding:20px; background:var(--main-background); }
+h2 { margin-top: 0; padding-top: 0; }
+.col-item { width:70%; }
+.col-result { width:30%; }
+.card { background: var(--card-background); border-radius:8px; padding:16px; box-shadow:0 4px 10px var(--card-shadow); }
+table { width:100%; border-collapse:collapse; margin-top:12px; }
+th,td { border:1px solid var(--main-border); padding:8px; text-align:center; }
+th { background: var(--table-background); font-weight:600; }
+input[type=number]{ width:80px; padding:4px; border-radius:4px; border:1px solid var(--main-border); text-align:center; }
+select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main-border); }
+.combo b { padding:2px 4px; border-radius:4px; color: var(--main-background); }
+.result p { margin:6px 0; font-size:1rem; }
+.result span { font-weight:bold; }
+.price-low { color: var(--price-low); font-weight:bold; }
+.price-high { color: var(--price-high); font-weight:bold; }
+</style>
+</head>
+<body>
+<div class="col-item">
+  <div class="card">
+    <h2>貨運今日高價物品</h2>
+    <table>
+      <thead>
+        <tr><th>#</th><th>類別 / 物品名稱</th><th>裝載量</th><th>盧諾單價</th></tr>
+      </thead>
+      <tbody id="slots"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="col-result">
+  <div class="card">
+    <h2>計算最優結果</h2>
+    <div id="resLowest" class="result"><em>--</em></div>
+    <br>
+    <div style="color:var(--main-description-text); font-size: 0.75rem;">計算: 價格最低 > 裝載量最低</div>
+  </div>
+</div>
+
+<script>
+const categoryColors = {
+  "植生學": "#2E8B57",
+  "礦物學": "#708090",
+  "晶石學": "#8A2BE2",
+  "烹飪": "#ff9800",
+  "煉金": "#4B0082",
+  "鍛造": "#B22222",
+  "織造": "#DA70D6",
+  "木作": "#8B4513", 
+  "工藝": "#CD853F",
+  "釣魚": "#1E90FF"
+};
+const items = [
+    {name:"雪花芹", weight:120, price:113, category:"植生學"},
+    {name:"甜甜漿果", weight:120, price:113, category:"植生學"},
+    {name:"草地小傘", weight:120, price:113, category:"植生學"},
+    {name:"螢光蕈", weight:165, price:156, category:"植生學"},
+    {name:"烏姆果", weight:165, price:156, category:"植生學"},
+    {name:"粉麝香", weight:165, price:156, category:"植生學"},
+
+    {name:"巴魯礦石", weight:120, price:184, category:"礦物學"},
+    {name:"阿茲特礦石", weight:120, price:184, category:"礦物學"},
+    {name:"盧納礦石", weight:120, price:184, category:"礦物學"},
+    {name:"巴魯富礦石", weight:225, price:212, category:"礦物學"},
+    {name:"阿茲特富礦石", weight:225, price:212, category:"礦物學"},
+    {name:"盧納富礦石", weight:225, price:212, category:"礦物學"},
+
+    {name:"星萃赤晶原石 1級", weight:240, price:210, category:"晶石學"},
+    {name:"星萃翠晶原石 1級", weight:240, price:210, category:"晶石學"},
+    {name:"星萃藍晶原石 1級", weight:240, price:210, category:"晶石學"},
+    {name:"星萃耀晶原石 1級", weight:240, price:210, category:"晶石學"},
+    {name:"星萃赤晶原石 2級", weight:330, price:278, category:"晶石學"},
+    {name:"星萃翠晶原石 2級", weight:330, price:267, category:"晶石學"},
+    {name:"星萃藍晶原石 2級", weight:330, price:267, category:"晶石學"},
+    {name:"星萃耀晶原石 2級", weight:330, price:267, category:"晶石學"},
+
+    {name:"鮮肉", weight:120, price:73, category:"烹飪"},
+    {name:"魚肉", weight:120, price:105, category:"烹飪"},
+    {name:"精製鮮肉", weight:165, price:89, category:"烹飪"},
+    {name:"精製魚肉", weight:165, price:101, category:"烹飪"},
+    {name:"罐罐魚 等級1", weight:1800, price:1217, category:"烹飪"},
+    {name:"炭火魚排 等級1", weight:1800, price:1214, category:"烹飪"},
+    {name:"壇壇肉 等級1", weight:1800, price:1214, category:"烹飪"},
+    {name:"裹花蒸丸子 等級1", weight:1800, price:1214, category:"烹飪"},
+    {name:"蜜菇湯 等級1", weight:1800, price:1214, category:"烹飪"},
+    {name:"香蕈乳凍 等級1", weight:1800, price:1214, category:"烹飪"},
+    {name:"鬱鬱鮮果茶 等級1", weight:1800, price:1214, category:"烹飪"},
+    {name:"糖露莓果 等級1", weight:1800, price:1214, category:"烹飪"},
+    {name:"罐罐魚 等級2", weight:3300, price:2226, category:"烹飪"},
+    {name:"炭火魚排 等級2", weight:3300, price:2226, category:"烹飪"},
+    {name:"壇壇肉 等級2", weight:3300, price:2226, category:"烹飪"},
+    {name:"裹花蒸丸子 等級2", weight:3300, price:2226, category:"烹飪"},
+    {name:"蜜菇湯 等級2", weight:3300, price:2120, category:"烹飪"},
+    {name:"香蕈乳凍 等級2", weight:3300, price:2226, category:"烹飪"},
+    {name:"鬱鬱鮮果茶 等級2", weight:3300, price:2226, category:"烹飪"},
+    {name:"糖露莓果 等級2", weight:3300, price:2226, category:"烹飪"},
+    {name:"魚鮮熔岩 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"魚醬蜜汁肉排 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"魚菇雙鮮鍋 等級1", weight:3300, price:2231, category:"烹飪"},
+    {name:"菇菇阿斯特鍋 等級1", weight:3300, price:2231, category:"烹飪"},
+    {name:"綢紗魚果鮮滾羹 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"香薰魚 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"肉餡蒸胖菇菇 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"奶油肉塊 等級1", weight:3300, price:2231, category:"烹飪"},
+    {name:"炭火香果烤肉 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"清燉肉湯 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"樸素阿斯特鍋 等級1", weight:3300, price:2008, category:"烹飪"},
+    {name:"九味醃肉 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"菇嚕醬 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"奶香烏姆 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"滿足雙響串 等級1", weight:3300, price:1781, category:"烹飪"},
+    {name:"真味雙寶燉 等級1", weight:3300, price:1785, category:"烹飪"},
+    {name:"痛痛飛 等級1", weight:3300, price:1781, category:"烹飪"},
+    {name:"山菌高湯魚鮮燴 等級1", weight:3300, price:2226, category:"烹飪"},
+    {name:"海風節阿斯特鍋 等級1", weight:3300, price:1785, category:"烹飪"},
+    {name:"果味海洋霜淇淋 等級1", weight:3300, price:1785, category:"烹飪"},
+    {name:"海風節精選 等級1", weight:3300, price:1781, category:"烹飪"},
+    {name:"妙香綿綿燒肉 等級1", weight:3300, price:1785, category:"烹飪"},
+    {name:"透花琉璃蜜肉醬 等級1", weight:3300, price:1781, category:"烹飪"},
+    {name:"卡尼曼果肉碎 等級1", weight:3300, price:1781, category:"烹飪"},
+    {name:"奶油飛魚 等級1", weight:3300, price:1781, category:"烹飪"},
+    {name:"小熊蜂蜜肉排 等級1", weight:3300, price:1781, category:"烹飪"},
+    {name:"藏香菇菇湯 等級1", weight:3300, price:1785, category:"烹飪"},
+    {name:"尋覓鮮果汁 等級1", weight:3300, price:1781, category:"烹飪"},
+    {name:"魚鮮熔岩 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"魚醬蜜汁肉排 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"魚菇雙鮮鍋 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"菇菇阿斯特鍋 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"綢紗魚果鮮滾羹 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"香薰魚 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"肉餡蒸胖菇菇 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"奶油肉塊 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"炭火香果烤肉 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"清燉肉湯 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"樸素阿斯特鍋 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"九味醃肉 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"菇嚕醬 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"奶香烏姆 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"滿足雙響串 等級2", weight:4950, price:3173, category:"烹飪"},
+    {name:"真味雙寶燉 等級2", weight:4950, price:3179, category:"烹飪"},
+    {name:"痛痛飛 等級2", weight:4950, price:2672, category:"烹飪"},
+    {name:"山菌高湯魚鮮燴 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"海風節阿斯特鍋 等級2", weight:4950, price:3340, category:"烹飪"},
+    {name:"果味海洋霜淇淋 等級2", weight:4950, price:2672, category:"烹飪"},
+    {name:"海風節精選 等級2", weight:4950, price:2672, category:"烹飪"},
+    {name:"妙香綿綿燒肉 等級2", weight:4950, price:2672, category:"烹飪"},
+    {name:"透花琉璃蜜肉醬 等級2", weight:4950, price:2672, category:"烹飪"},
+    {name:"卡尼曼果肉碎 等級2", weight:4950, price:2677, category:"烹飪"},
+    {name:"奶油飛魚 等級2", weight:4950, price:2672, category:"烹飪"},
+    {name:"小熊蜂蜜肉排 等級2", weight:4950, price:2672, category:"烹飪"},
+    {name:"藏香菇菇湯 等級2", weight:4950, price:2677, category:"烹飪"},
+    {name:"尋覓鮮果汁 等級2", weight:4950, price:2677, category:"烹飪"},
+
+    {name:"冰元素顆粒 等級1", weight:870, price:645, category:"煉金"},
+    {name:"火元素顆粒 等級1", weight:870, price:616, category:"煉金"},
+    {name:"森元素顆粒 等級1", weight:870, price:616, category:"煉金"},
+    {name:"岩元素顆粒 等級1", weight:870, price:587, category:"煉金"},
+    {name:"風元素顆粒 等級1", weight:870, price:733, category:"煉金"},
+    {name:"雷元素顆粒 等級1", weight:870, price:587, category:"煉金"},
+    {name:"光元素顆粒 等級1", weight:870, price:617, category:"煉金"},
+    {name:"暗元素顆粒 等級1", weight:870, price:793, category:"煉金"},
+    {name:"冰元素顆粒 等級2", weight:870, price:626, category:"煉金"},
+    {name:"火元素顆粒 等級2", weight:870, price:823, category:"煉金"},
+    {name:"森元素顆粒 等級2", weight:870, price:659, category:"煉金"},
+    {name:"岩元素顆粒 等級2", weight:870, price:889, category:"煉金"},
+    {name:"風元素顆粒 等級2", weight:870, price:658, category:"煉金"},
+    {name:"雷元素顆粒 等級2", weight:870, price:658, category:"煉金"},
+    {name:"光元素顆粒 等級2", weight:870, price:658, category:"煉金"},
+    {name:"暗元素顆粒 等級2", weight:870, price:659, category:"煉金"},
+    {name:"烈火糖漿 等級1", weight:2400, price:1622, category:"煉金"},
+    {name:"冰凍糖漿 等級1", weight:2400, price:1622, category:"煉金"},
+    {name:"青蔓糖漿 等級1", weight:2400, price:1622, category:"煉金"},
+    {name:"震土糖漿 等級1", weight:2400, price:1622, category:"煉金"},
+    {name:"旋風糖漿 等級1", weight:2400, price:1622, category:"煉金"},
+    {name:"雷鳴糖漿 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"光彩糖漿 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"暗夜糖漿 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"烈火糖漿 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"冰凍糖漿 等級2", weight:4050, price:2186, category:"煉金"},
+    {name:"青蔓糖漿 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"震土糖漿 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"旋風糖漿 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"雷鳴糖漿 等級2", weight:4050, price:2186, category:"煉金"},
+    {name:"光彩糖漿 等級2", weight:4050, price:2186, category:"煉金"},
+    {name:"暗夜糖漿 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"抗火含片 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"抗冰含片 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"抗森含片 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"抗岩含片 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"抗風含片 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"抗雷含片 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"抗光含片 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"抗暗含片 等級1", weight:2400, price:1619, category:"煉金"},
+    {name:"抗火含片 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"抗冰含片 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"抗森含片 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"抗岩含片 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"抗風含片 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"抗雷含片 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"抗光含片 等級2", weight:4050, price:2732, category:"煉金"},
+    {name:"抗暗含片 等級2", weight:4050, price:2602, category:"煉金"},
+
+
+    {name:"藍晶寶石 威3", weight:7500, price:6591, category:"工藝"},
+    {name:"火焰斑魚", weight:120, price:0, category:"釣魚"},
+    {name:"阿斯特池魚", weight:120, price:0, category:"釣魚"},
+    {name:"雷格納斯銨鱅魚", weight:525, price:0, category:"釣魚"},
+    {name:"大陸東方魨", weight:525, price:0, category:"釣魚"},
+    {name:"星辰紫鱗魚", weight:525, price:0, category:"釣魚"},
+];
+
+const target = 20000;
+
+function generateSlots(){
+    const tbody = document.getElementById('slots');
+    tbody.innerHTML='';
+    for(let i=0;i<8;i++){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+        <td>${i+1}</td>
+        <td style="display:flex; gap:8px; justify-content:center; align-items:center;">
+          <select id="cat_${i}" onchange="updateItemOptions(${i}); recompute();"></select>
+          <select id="sel_${i}" onchange="updateSlot(${i}); recompute();"></select>
+        </td>
+        <td><input type="number" id="w_${i}" disabled></td>
+        <td><input type="number" id="p_${i}" onchange="recompute()"></td>
+        `;
+        tbody.appendChild(tr);
+        populateCategoryOptions(i);
+        updateItemOptions(i);
+    }
+}
+
+function populateCategoryOptions(i){
+    const catSel = document.getElementById(`cat_${i}`);
+    catSel.innerHTML = Object.keys(categoryColors).map(cat=>`<option value="${cat}" style="color:${categoryColors[cat]}">${cat}</option>`).join('');
+    catSel.selectedIndex = 0;
+}
+
+function updateItemOptions(i){
+    const catSel = document.getElementById(`cat_${i}`);
+    catSel.style.color = categoryColors[catSel.value] || "#000";
+    const sel = document.getElementById(`sel_${i}`);
+    const cat = catSel.value;
+    const filtered = items.filter(it => it.category === cat);
+    sel.innerHTML = filtered.map(it=>`<option value="${it.name}" style="color:${categoryColors[it.category]}">${it.name}</option>`).join('');
+    sel.selectedIndex = 0;
+    updateSlot(i);
+}
+
+function updateSlot(i){
+    const sel = document.getElementById(`sel_${i}`);
+    const it = items.find(x=>x.name===sel.value);
+    if(!it) return;
+    sel.style.color = categoryColors[it.category] || "#000";
+    document.getElementById(`w_${i}`).value = it.weight;
+    document.getElementById(`p_${i}`).value = it.price;
+}
+
+
+function recompute(){
+    function preprocess(selected){
+        const map = {};
+        for(const it of selected){
+            const key = it.weight;
+            if(!map[key] || it.price < map[key].price) {
+                map[key] = {name: it.name, weight: it.weight, price: it.price, category: it.category};
+            }
+        }
+        return Object.values(map);
+    }
+
+    const selected=[];
+    for(let i=0;i<8;i++){
+        const sel = document.getElementById(`sel_${i}`).value;
+        const w = Number(document.getElementById(`w_${i}`).value);
+        const p = Number(document.getElementById(`p_${i}`).value);
+        const it = items.find(x=>x.name===sel);
+        selected.push({name:sel, weight:w, price:p, category: it.category});
+    }
+
+    const types = preprocess(selected); // 用於背包計算
+
+    const maxWeight = 100000;
+    const dp = Array(maxWeight+1).fill(Infinity);
+    const pick = Array(maxWeight+1).fill(null);
+    dp[0] = 0;
+
+    for(const it of types){
+        for(let w=it.weight; w<=maxWeight; w++){
+            if(dp[w-it.weight]+it.price < dp[w]){
+                dp[w] = dp[w-it.weight]+it.price;
+                pick[w] = it.name;
+            }
+        }
+    }
+
+    let bestW = target;
+    let minPrice = Infinity;
+    for(let w=target; w<=maxWeight; w++){
+        if(dp[w] < minPrice){
+            minPrice = dp[w];
+            bestW = w;
+        }
+    }
+
+    // 回溯計算每個選擇的數量
+    let w = bestW;
+    const counts = {};
+    while(w>0){
+        const name = pick[w];
+        if(!name) break;
+        counts[name] = (counts[name]||0)+1;
+        const it = types.find(x=>x.name===name);
+        w -= it.weight;
+    }
+
+    // 渲染組合
+    function render(res, dom){
+        const combo = [];
+        for(const name of Object.keys(res.counts)){
+            if(res.counts[name] <= 0) continue;
+            const it = types.find(x=>x.name===name);
+
+            // 從原始 selected 找所有同 weight + price 名稱，去重
+            const samePriceWeight = selected
+                .filter(x => x.weight===it.weight && x.price===it.price)
+                .map(x => x.name);
+            const uniqueNames = [...new Set(samePriceWeight)];
+
+            const color = categoryColors[it.category] || "#000";
+            combo.push(`<b style="color:${color}">${uniqueNames.join('/')}</b> × ${res.counts[name]}`);
+        }
+
+        const priceClass = res.price < 18000 ? 'price-low' : 'price-high';
+        dom.innerHTML = `<p>總裝載量: <span>${res.weight}</span>, 總盧諾價格: <span class="${priceClass}">${res.price}</span></p>
+                        <p>組合: ${combo.join('、') || '<em>無</em>'}</p>`;
+    }
+    render({weight: bestW, price: dp[bestW], counts}, document.getElementById('resLowest'));
+}
+
+// 初始化
+generateSlots();
+recompute();
+</script>
+</body>
+</html>
