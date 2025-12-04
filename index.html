@@ -237,7 +237,7 @@ async function resetAllPrices() {
     recompute();
 }
 async function updateAllPrices() {
-    document.getElementById('overlay-text').textContent = "更新價格中";
+    document.getElementById('overlay-text').textContent = "更新時價中";
     document.getElementById('overlay').style.display = 'flex';
     
     const updates = [];
@@ -271,7 +271,7 @@ async function updateAllPrices() {
     generateSlots();
     recompute();
     
-    document.getElementById('update-price').textContent = "↺ 更新價格";
+    document.getElementById('update-price').textContent = "🡅 更新時價";
     document.getElementById('overlay').style.display = 'none';
 
     alert("價格更新成功！");
@@ -584,6 +584,7 @@ document.getElementById("reportSubmit").onclick = async () => {
 </body>
 
 </html>
+
 
 
 
