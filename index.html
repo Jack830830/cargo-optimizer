@@ -157,7 +157,8 @@ button:hover {
             <tbody id="slots"></tbody>
           </table>
       </div>
-      <button id="update-price" class="button-shift" onclick="updateAllPrices()">↺ 更新價格</button>
+      <button id="reset-price" class="button-shift" onclick="resetAllPrices()">↺ 重置價格</button>
+      <button id="update-price" class="button-shift" onclick="updateAllPrices()">🡅 更新時價</button>
     </div>
   </div>
 
@@ -228,6 +229,12 @@ async function loadItems() {
     }
 
     return data;
+}
+async function resetAllPrices() {
+    for(let i=0;i<8;i++){
+          updateSlot(i);
+    }
+    recompute();
 }
 async function updateAllPrices() {
     document.getElementById('overlay-text').textContent = "更新價格中";
@@ -577,6 +584,7 @@ document.getElementById("reportSubmit").onclick = async () => {
 </body>
 
 </html>
+
 
 
 
