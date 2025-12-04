@@ -248,7 +248,7 @@ async function updateAllPrices() {
     
         if (priceMap.hasOwnProperty(selValue)) {
             if (priceMap[selValue] !== p) {
-                alert(`"${selValue}" 在第 ${i} 欄的價格 ${p} 與前面不同 (${priceMap[selValue]})`);
+                alert(`"${selValue}" 在第 ${i+1} 欄的價格 ${p} 與前面不同 (${priceMap[selValue]})`);
                 return;
             }
         } else {
@@ -604,6 +604,7 @@ document.getElementById("reportSubmit").onclick = async () => {
 </body>
 
 </html>
+
 
 
 
