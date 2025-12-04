@@ -7,25 +7,52 @@
 :root {
     --main-background: #F0F2F5;
     --main-border: #DDD;
-    --table-background: #E8E8F5;
+    --main-overlay: #00000088;
+    --table-background: #4A90E2;
     --card-background: #FFF;
     --card-shadow: #00000022;
+    
+    
+    --button-background: #4A90E2;
     
     --main-description-text: #777;
 
     --price-low: green;
     --price-high: red;
 }
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display:flex; gap:20px; padding:20px; background:var(--main-background); }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display:flex; flex-direction: column; gap:20px; padding:20px; background:var(--main-background); }
 h2 { margin-top: 0; padding-top: 0; }
 .col { width:100%; }
 .card { background: var(--card-background); border-radius:8px; padding:16px; box-shadow:0 4px 10px var(--card-shadow); }
 .table-wrapper { overflow-x: auto; width: 100%; }
-table { width: 100%; border-collapse: collapse; margin-top: 12px; table-layout: auto; word-break: break-word; }
+table { width: 100%; border-collapse: collapse; margin-top: 8px; table-layout: auto; word-break: break-word; }
 th,td { border:1px solid var(--main-border); padding:8px; text-align:center; }
 th { background: var(--table-background); font-weight:600; }
 input[type=number]{ width:80px; padding:4px; border-radius:4px; border:1px solid var(--main-border); text-align:center; }
 select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main-border); }
+button {
+  border: none;
+  border-radius: 4px;
+  height: 2rem;
+  cursor: pointer;
+  background-color: var(--button-background);
+  min-width: 120px;
+  font-weight: 700;
+}
+button:hover {
+  color: white;
+  transform: translateY(-0.8px);
+  filter: brightness(1.15);
+}
+.button-shift {
+  margin-top: 1rem;
+  margin-left: 1rem;
+}
+.short-button {
+  height:1.6rem;
+  margin-left: 0.4rem;
+  min-width: 25px;
+}
 .combo b { padding:2px 4px; border-radius:4px; color: var(--main-background); }
 .result p { margin:6px 0; font-size:1rem; }
 .result span { font-weight:bold; }
@@ -46,6 +73,8 @@ select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main
   margin: 80px auto;
   border-radius: 8px;
   position: relative;
+  max-height: 80%;
+  overflow-y: auto;
 }
 .modal-close {
   position: absolute;
@@ -54,60 +83,107 @@ select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main
   cursor: pointer;
   font-size: 22px;
 }
+#overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--main-overlay);
+  z-index: 9999;
+  cursor: wait;
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column; 
+  gap: 10px;  
+
+  opacity: 0;
+  animation: overlayfadeIn 0.5s forwards;
+}
+#overlay .text {
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+}
+#overlay-text {
+  display: inline-block;
+}
+#overlay .text .dots::after {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  text-align: left;
+  animation: dots 1s steps(3, end) infinite;
+}
+@keyframes overlayfadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes dots {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
 </style>
 </head>
 <body>
-<div class="col">
-  <div class="card">
-    <h2>貨運今日高價物品</h2>
-    <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr><th>#</th><th>類別 / 物品名稱</th><th>裝載量</th><th>盧諾單價</th></tr>
-          </thead>
-          <tbody id="slots"></tbody>
-        </table>
+<div style="display:flex; gap:20px;">
+  <div class="col">
+    <div class="card">
+      <h2>貨運今日高價物品</h2>
+      <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>#</th><th>類別 / 物品名稱</th><th>裝載量</th><th>盧諾單價</th></tr>
+            </thead>
+            <tbody id="slots"></tbody>
+          </table>
+      </div>
+      <button id="update-price" class="button-shift" onclick="updateAllPrices()">↺ 更新價格</button>
     </div>
-    <button onclick="updateAllPrices()">更新價格</button>
+  </div>
+
+  <div class="col">
+    <div class="card">
+      <h2>計算最優結果</h2>
+      <div id="resLowest" class="result"><em>--</em></div>
+      <br>
+      <div style="color:var(--main-description-text); font-size: 0.75rem;">計算: 價格最低 > 裝載量最低</div>
+      
+  <button id="reportBtn" class="button-shift">⚠ 回報問題</button>
+  <!-- Modal -->
+  <div id="reportModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+
+      <h2>回報問題</h2>
+
+      <!-- Step 1: 選類型 -->
+      <label>回報類型：</label>
+      <select id="reportType">
+        <option value="item_error">1. 物品資訊錯誤</option>
+        <option value="missing_item">2. 新增物品</option>
+        <option value="other_issue">3. 計算錯誤 / 其他問題</option>
+      </select>
+
+      <div id="reportBody" style="margin-top: 15px;"></div>
+
+      <button id="reportSubmit" style="margin-top: 20px; width: 100%;">送出回報</button>
+    </div>
+  </div>
+    </div>
   </div>
 </div>
 
-<div class="col">
-  <div class="card">
-    <h2>計算最優結果</h2>
-    <div id="resLowest" class="result"><em>--</em></div>
-    <br>
-    <div style="color:var(--main-description-text); font-size: 0.75rem;">計算: 價格最低 > 裝載量最低</div>
-  </div>
-</div>
+<div id="overlay" style="display:none;"><div class="text"><span id="overlay-text"></span><span class="dots"></span></div></div>
 
-<button id="reportBtn">回報問題</button>
-<!-- Modal -->
-<div id="reportModal" class="modal">
-  <div class="modal-content">
-    <span class="modal-close">&times;</span>
 
-    <h2>回報問題</h2>
+<script src="https://unpkg.com/@supabase/supabase-js@2.86.0/dist/umd/supabase.js"></script>
 
-    <!-- Step 1: 選類型 -->
-    <label>回報類型：</label>
-    <select id="reportType">
-      <option value="" disabled selected>請選擇</option>
-      <option value="item_error">1. Items 資訊錯誤</option>
-      <option value="missing_item">2. 欠缺 Items</option>
-      <option value="other_issue">3. 計算錯誤 / 其他問題</option>
-    </select>
-
-    <div id="reportBody" style="margin-top: 15px;"></div>
-
-    <button id="reportSubmit" style="margin-top: 20px; width: 100%;">送出回報</button>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-const supabaseUrl = "https://tdlogwmrfswqyxoouizw.supabase.co";
-const supabaseKey = "sb_publishable_0dSV0uhQ6qJOGpts6IsIfA_f9Fox0u4";
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+<script>
+const supabaseUrl = 'https://tdlogwmrfswqyxoouizw.supabase.co';
+const supabaseKey = 'sb_publishable_0dSV0uhQ6qJOGpts6IsIfA_f9Fox0u4';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
     
 const categoryColors = {
   "植生學": "#2E8B57",
@@ -123,19 +199,22 @@ const categoryColors = {
 };
 
 async function loadItems() {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from("items")
         .select("*")
         .order("name");
 
     if (error) {
-        console.error("Supabase 讀取錯誤:", error);
+        console.error("supabaseClient 讀取錯誤:", error);
         return [];
     }
 
     return data;
 }
 async function updateAllPrices() {
+    document.getElementById('overlay-text').textContent = "更新價格中";
+    document.getElementById('overlay').style.display = 'flex';
+    
     const updates = [];
 
     for (let s = 0; s < 8; s++) {
@@ -143,19 +222,17 @@ async function updateAllPrices() {
         const priceInput = document.getElementById(`p_${s}`);
 
         if (!sel || !priceInput) continue;
-        if (sel.value === "") continue; // 沒選 item 的跳過
+        if (sel.value === "") continue;
 
         const newPrice = Number(priceInput.value);
-
         updates.push({
             name: sel.value,
             price: newPrice
         });
     }
 
-    // 批次更新（推薦）
     for (let u of updates) {
-        const { error } = await supabase
+        const { error } = await supabaseClient
             .from("items")
             .update({ price: u.price })
             .eq("name", u.name);
@@ -165,7 +242,14 @@ async function updateAllPrices() {
         }
     }
 
-    alert("已更新 8 個欄位中的有效項目！");
+    items = await loadItems();
+    generateSlots();
+    recompute();
+    
+    document.getElementById('update-price').textContent = "↺ 更新價格";
+    document.getElementById('overlay').style.display = 'none';
+
+    alert("價格更新成功！");
 }
     
 let items = [];
@@ -309,59 +393,102 @@ loadItems().then(data => {
 });
 
 //回報功能
+async function submitReport(payload) {
+    const { data, error } = await supabaseClient
+        .from("report")
+        .insert([payload]);
+
+    if (error) {
+        console.error("送出回報失敗:", error);
+        alert("送出回報失敗，請稍後再試！");
+        return false;
+    }
+    alert("感謝回報！");
+    return true;
+}
+
 // 打開/關閉 modal
 const modal = document.getElementById("reportModal");
-document.getElementById("reportBtn").onclick = () => modal.style.display = "block";
+document.getElementById("reportBtn").onclick = () => {
+    modal.style.display = "block";
+    const reportType = document.getElementById("reportType");
+    if(!reportType.value) reportType.selectedIndex = 0;
+    reportType.dispatchEvent(new Event('change'));
+};
 document.querySelector(".modal-close").onclick = () => modal.style.display = "none";
 window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
-
 
 // 當選擇 reportType 後產生不同 UI
 document.getElementById("reportType").addEventListener("change", function () {
   let type = this.value;
   let body = document.getElementById("reportBody");
+  body.innerHTML = "";
 
   if (type === "item_error") {
+    // 選 category -> 選 item
     body.innerHTML = `
-      <label>選擇 item：</label>
-      <select id="errorItem">
-        ${items.map(i => `<option value="${i.id}">${i.name}</option>`).join("")}
-      </select>
+      <label>選擇類別：</label>
+      <select id="errorCategory" style="margin-bottom: 10px;"></select><br>
 
-      <label style="margin-top:10px;">描述問題：</label>
-      <textarea id="errorDesc" rows="4" style="width:100%;"></textarea>
+      <label>選擇物品：</label>
+      <select id="errorItem" style="margin-bottom: 10px;"></select><br>
+
+      <label style="display:block; margin-top:10px;">描述問題：</label>
+      <textarea id="errorDesc" rows="4" style="width:100%; height: 10rem; "></textarea>
     `;
-  }
 
-  else if (type === "missing_item") {
+    const catSel = document.getElementById("errorCategory");
+    const itemSel = document.getElementById("errorItem");
+
+    catSel.innerHTML = Object.keys(categoryColors)
+      .map(cat => `<option value="${cat}" style="color:${categoryColors[cat]}">${cat}</option>`)
+      .join("");
+    catSel.selectedIndex = 0;
+    catSel.style.color = categoryColors[catSel.value] || "#000";
+    
+    function updateErrorItems() {
+        const sel = document.getElementById("errorItem");
+        const cat = catSel.value;
+        const filtered = items.filter(it => it.category === cat);
+        sel.innerHTML = filtered.map(it=>`<option value="${it.id}" style="color:${categoryColors[it.category]}">${it.name}</option>`).join('');
+        itemSel.selectedIndex = 0;
+        const it = items.find(x => x.id == itemSel.value);
+        if(it) itemSel.style.color = categoryColors[it.category] || "#000";
+    }
+    
+    catSel.addEventListener("change", () => {
+        catSel.style.color = categoryColors[catSel.value] || "#000";
+        updateErrorItems();
+    });
+
+    updateErrorItems(); // 初始化
+
+  } else if (type === "missing_item") {
     body.innerHTML = `
-      <label>備註（可選）：</label>
-      <textarea id="missingNote" rows="2" style="width:100%;"></textarea>
 
       <div id="missingList" style="margin-top:10px;"></div>
 
-      <button onclick="addMissingItem()" style="margin-top:10px;">+ 新增一筆</button>
+      <button class="short-button" onclick="addMissingItem()" style="margin-top:10px;">  +  </button><br><br>
+      
+      <label>備註：</label>
+      <textarea id="missingNote" rows="2" style="width:100%; height: 10rem;"></textarea>
     `;
 
-    addMissingItem(); // 先給一筆空白
-  }
-
-  else if (type === "other_issue") {
+    addMissingItem();
+  } else if (type === "other_issue") {
     body.innerHTML = `
       <label>回報者 ID：</label>
       <input id="otherID" style="width:100%;" />
 
-      <label style="margin-top:10px;">問題主旨（50 字內）：</label>
+      <label style="margin-top:10px;">問題主旨：</label>
       <input id="otherTitle" maxlength="50" style="width:100%;" />
 
-      <label style="margin-top:10px;">問題描述：</label>
-      <textarea id="otherDesc" rows="4" style="width:100%;"></textarea>
+      <label style="margin-top:10px; display:block;">問題描述：</label>
+      <textarea id="otherDesc" rows="4" style="width:100%; height: 10rem;"></textarea>
     `;
   }
 });
 
-
-// (缺少 items) 新增一筆
 function addMissingItem() {
   let box = document.getElementById("missingList");
 
@@ -370,34 +497,46 @@ function addMissingItem() {
   div.style.marginBottom = "8px";
 
   div.innerHTML = `
-    <input placeholder="name" class="miName" style="width:22%;">
-    <input placeholder="weight" class="miWeight" style="width:22%;">
-    <input placeholder="price" class="miPrice" style="width:22%;">
-    <input placeholder="category" class="miCat" style="width:22%;">
-    <button onclick="this.parentNode.remove()">-</button>
+    <input placeholder="物品名稱" class="miName" style="width:20%; height:1.2rem;">
+    <input placeholder="裝載量" class="miWeight" style="width:20%; height:1.2rem;">
+    <input placeholder="盧諾單價" class="miPrice" style="width:20%; height:1.2rem;">
+    <select placeholder="類別" class="miCat" style="width:20%;"></select>
+    </select>
+    <button class="short-button" onclick="this.parentNode.remove()">-</button>
   `;
 
   box.appendChild(div);
-}
 
+  function updateMiCatColor(selectElement) {
+    const val = selectElement.value;
+    selectElement.style.color = categoryColors[val] || "#000";
+  }
+  
+  const catSel = div.querySelector(".miCat");
+  catSel.innerHTML = Object.keys(categoryColors)
+    .map(cat => `<option value="${cat}" style="color:${categoryColors[cat]}">${cat}</option>`)
+    .join('');
+  catSel.selectedIndex = 0;
+  catSel.style.color = categoryColors[catSel.value] || "#000";
+
+  // 改變顏色事件
+  catSel.addEventListener("change", () => {
+    catSel.style.color = categoryColors[catSel.value] || "#000";
+  });
+}
 
 // 送出回報
 document.getElementById("reportSubmit").onclick = async () => {
   let type = document.getElementById("reportType").value;
-
+  if(!type) return alert("請先選擇回報類型");
   let payload = { report_type: type };
 
-  // type 1：item 錯誤
   if (type === "item_error") {
     payload.item_id = document.getElementById("errorItem").value;
     payload.description = document.getElementById("errorDesc").value;
-  }
-
-  // type 2：缺 item
-  else if (type === "missing_item") {
+  } else if (type === "missing_item") {
     payload.description = document.getElementById("missingNote").value;
     payload.items_data = [];
-
     document.querySelectorAll(".missingItemRow").forEach(r => {
       payload.items_data.push({
         name: r.querySelector(".miName").value,
@@ -406,29 +545,17 @@ document.getElementById("reportSubmit").onclick = async () => {
         category: r.querySelector(".miCat").value,
       });
     });
-  }
-
-  // type 3：操作問題
-  else if (type === "other_issue") {
+  } else if (type === "other_issue") {
     payload.reporter_id = document.getElementById("otherID").value;
     payload.title = document.getElementById("otherTitle").value;
     payload.description = document.getElementById("otherDesc").value;
   }
 
-  // 呼叫你原本的 Supabase 寫入 function
   await submitReport(payload);
 
-  alert("感謝回報！");
   modal.style.display = "none";
 };
 </script>
 </body>
 
 </html>
-
-
-
-
-
-
-
