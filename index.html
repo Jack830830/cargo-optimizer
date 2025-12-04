@@ -288,7 +288,6 @@ async function updateAllPrices() {
     }
 
     items = await loadItems();
-    generateSlots();
     recompute();
     
     document.getElementById('update-price').textContent = "🡅 更新時價";
@@ -604,6 +603,7 @@ document.getElementById("reportSubmit").onclick = async () => {
 </body>
 
 </html>
+
 
 
 
