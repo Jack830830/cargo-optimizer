@@ -237,6 +237,7 @@ async function resetAllPrices() {
     recompute();
 }
 async function updateAllPrices() {
+    if (!confirm("更新時價會取代目前設定的價格,請確認設定的價格正確\n是否確定要更新時價?")) return;
     document.getElementById('overlay-text').textContent = "更新時價中";
     document.getElementById('overlay').style.display = 'flex';
     
@@ -584,6 +585,7 @@ document.getElementById("reportSubmit").onclick = async () => {
 </body>
 
 </html>
+
 
 
 
