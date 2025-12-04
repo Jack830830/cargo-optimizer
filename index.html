@@ -31,6 +31,29 @@ select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main
 .result span { font-weight:bold; }
 .price-low { color: var(--price-low); font-weight:bold; }
 .price-high { color: var(--price-high); font-weight:bold; }
+    .modal {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.45);
+}
+.modal-content {
+  background: #fff;
+  width: 380px;
+  padding: 20px;
+  margin: 80px auto;
+  border-radius: 8px;
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  cursor: pointer;
+  font-size: 22px;
+}
 </style>
 </head>
 <body>
@@ -45,6 +68,7 @@ select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main
           <tbody id="slots"></tbody>
         </table>
     </div>
+    <button onclick="updateAllPrices()">更新價格</button>
   </div>
 </div>
 
@@ -57,7 +81,34 @@ select{ width:200px; padding:4px; border-radius:4px; border:1px solid var(--main
   </div>
 </div>
 
-<script>
+<button id="reportBtn">回報問題</button>
+<!-- Modal -->
+<div id="reportModal" class="modal">
+  <div class="modal-content">
+    <span class="modal-close">&times;</span>
+
+    <h2>回報問題</h2>
+
+    <!-- Step 1: 選類型 -->
+    <label>回報類型：</label>
+    <select id="reportType">
+      <option value="" disabled selected>請選擇</option>
+      <option value="item_error">1. Items 資訊錯誤</option>
+      <option value="missing_item">2. 欠缺 Items</option>
+      <option value="other_issue">3. 計算錯誤 / 其他問題</option>
+    </select>
+
+    <div id="reportBody" style="margin-top: 15px;"></div>
+
+    <button id="reportSubmit" style="margin-top: 20px; width: 100%;">送出回報</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+const supabaseUrl = "https://tdlogwmrfswqyxoouizw.supabase.co";
+const supabaseKey = "sb_publishable_0dSV0uhQ6qJOGpts6IsIfA_f9Fox0u4";
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    
 const categoryColors = {
   "植生學": "#2E8B57",
   "礦物學": "#708090",
@@ -70,24 +121,53 @@ const categoryColors = {
   "工藝": "#CD853F",
   "釣魚": "#1E90FF"
 };
-async function loadCSV() {
-  const response = await fetch('items.csv');
-  const csv = await response.text();
 
-  const lines = csv.trim().split('\n');
+async function loadItems() {
+    const { data, error } = await supabase
+        .from("items")
+        .select("*")
+        .order("name");
 
-  // 跳過第一行 title → 從 index=1 開始
-  return lines.slice(1).map(line => {
-    const [name, weight, price, category] = line.split(',');
-    return {
-      name: name,
-      weight: Number(weight),
-      price: Number(price),
-      category: category
-    };
-  });
+    if (error) {
+        console.error("Supabase 讀取錯誤:", error);
+        return [];
+    }
+
+    return data;
 }
+async function updateAllPrices() {
+    const updates = [];
 
+    for (let s = 0; s < 8; s++) {
+        const sel = document.getElementById(`sel_${s}`);
+        const priceInput = document.getElementById(`p_${s}`);
+
+        if (!sel || !priceInput) continue;
+        if (sel.value === "") continue; // 沒選 item 的跳過
+
+        const newPrice = Number(priceInput.value);
+
+        updates.push({
+            name: sel.value,
+            price: newPrice
+        });
+    }
+
+    // 批次更新（推薦）
+    for (let u of updates) {
+        const { error } = await supabase
+            .from("items")
+            .update({ price: u.price })
+            .eq("name", u.name);
+
+        if (error) {
+            console.error("更新失敗:", u.name, error);
+        }
+    }
+
+    alert("已更新 8 個欄位中的有效項目！");
+}
+    
 let items = [];
     
 const target = 20000;
@@ -221,16 +301,131 @@ function recompute(){
 }
 
 // 初始化
-loadCSV().then(data => {
+loadItems().then(data => {
       items = data;
     
     generateSlots();
     recompute();
 });
+
+//回報功能
+// 打開/關閉 modal
+const modal = document.getElementById("reportModal");
+document.getElementById("reportBtn").onclick = () => modal.style.display = "block";
+document.querySelector(".modal-close").onclick = () => modal.style.display = "none";
+window.onclick = (e) => { if (e.target === modal) modal.style.display = "none"; };
+
+
+// 當選擇 reportType 後產生不同 UI
+document.getElementById("reportType").addEventListener("change", function () {
+  let type = this.value;
+  let body = document.getElementById("reportBody");
+
+  if (type === "item_error") {
+    body.innerHTML = `
+      <label>選擇 item：</label>
+      <select id="errorItem">
+        ${items.map(i => `<option value="${i.id}">${i.name}</option>`).join("")}
+      </select>
+
+      <label style="margin-top:10px;">描述問題：</label>
+      <textarea id="errorDesc" rows="4" style="width:100%;"></textarea>
+    `;
+  }
+
+  else if (type === "missing_item") {
+    body.innerHTML = `
+      <label>備註（可選）：</label>
+      <textarea id="missingNote" rows="2" style="width:100%;"></textarea>
+
+      <div id="missingList" style="margin-top:10px;"></div>
+
+      <button onclick="addMissingItem()" style="margin-top:10px;">+ 新增一筆</button>
+    `;
+
+    addMissingItem(); // 先給一筆空白
+  }
+
+  else if (type === "other_issue") {
+    body.innerHTML = `
+      <label>回報者 ID：</label>
+      <input id="otherID" style="width:100%;" />
+
+      <label style="margin-top:10px;">問題主旨（50 字內）：</label>
+      <input id="otherTitle" maxlength="50" style="width:100%;" />
+
+      <label style="margin-top:10px;">問題描述：</label>
+      <textarea id="otherDesc" rows="4" style="width:100%;"></textarea>
+    `;
+  }
+});
+
+
+// (缺少 items) 新增一筆
+function addMissingItem() {
+  let box = document.getElementById("missingList");
+
+  let div = document.createElement("div");
+  div.className = "missingItemRow";
+  div.style.marginBottom = "8px";
+
+  div.innerHTML = `
+    <input placeholder="name" class="miName" style="width:22%;">
+    <input placeholder="weight" class="miWeight" style="width:22%;">
+    <input placeholder="price" class="miPrice" style="width:22%;">
+    <input placeholder="category" class="miCat" style="width:22%;">
+    <button onclick="this.parentNode.remove()">-</button>
+  `;
+
+  box.appendChild(div);
+}
+
+
+// 送出回報
+document.getElementById("reportSubmit").onclick = async () => {
+  let type = document.getElementById("reportType").value;
+
+  let payload = { report_type: type };
+
+  // type 1：item 錯誤
+  if (type === "item_error") {
+    payload.item_id = document.getElementById("errorItem").value;
+    payload.description = document.getElementById("errorDesc").value;
+  }
+
+  // type 2：缺 item
+  else if (type === "missing_item") {
+    payload.description = document.getElementById("missingNote").value;
+    payload.items_data = [];
+
+    document.querySelectorAll(".missingItemRow").forEach(r => {
+      payload.items_data.push({
+        name: r.querySelector(".miName").value,
+        weight: r.querySelector(".miWeight").value,
+        price: r.querySelector(".miPrice").value,
+        category: r.querySelector(".miCat").value,
+      });
+    });
+  }
+
+  // type 3：操作問題
+  else if (type === "other_issue") {
+    payload.reporter_id = document.getElementById("otherID").value;
+    payload.title = document.getElementById("otherTitle").value;
+    payload.description = document.getElementById("otherDesc").value;
+  }
+
+  // 呼叫你原本的 Supabase 寫入 function
+  await submitReport(payload);
+
+  alert("感謝回報！");
+  modal.style.display = "none";
+};
 </script>
 </body>
 
 </html>
+
 
 
 
