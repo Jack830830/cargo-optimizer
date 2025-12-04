@@ -521,13 +521,13 @@ document.getElementById("reportType").addEventListener("change", function () {
     addMissingItem();
   } else if (type === "other_issue") {
     body.innerHTML = `
-      <label>回報者 ID：</label>
-      <input id="otherID" style="width:100%;" />
+      <label>回報者資訊：</label>
+      <input id="otherID" placeholder="遊戲ID/Discord/..." style="width:100%;" />
 
       <label style="margin-top:10px;">問題主旨：</label>
-      <input id="otherTitle" maxlength="50" style="width:100%;" />
+      <input id="otherTitle" placeholder="問題種類/情境/..." maxlength="50" style="width:100%;" />
 
-      <label style="margin-top:10px; display:block;">問題描述：</label>
+      <label style="margin-top:10px; display:block;">詳細描述問題：</label>
       <textarea id="otherDesc" rows="4" style="width:100%; height: 10rem;"></textarea>
     `;
   }
@@ -603,6 +603,7 @@ document.getElementById("reportSubmit").onclick = async () => {
 </body>
 
 </html>
+
 
 
 
